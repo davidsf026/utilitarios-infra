@@ -1,0 +1,6 @@
+sudo crontab -e
+
+# adicionar a linha abaixo
+@reboot systemctl start vmware
+
+sudo crontab -l
