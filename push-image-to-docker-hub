@@ -1,0 +1,5 @@
+docker tag existing-image usuario/new-or-same-image-name:tag
+docker push usuario/new-or-same-image-name:tag
+
+# in case you've changed the "existing-image" and want to commit changes, use the command bellow
+docker tag existing-image usuario/new-or-same-image-name:tag
