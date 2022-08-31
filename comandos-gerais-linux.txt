@@ -1,0 +1,7 @@
+# INFORMAÇÕES SOBRE UM DNS
+nslookup
+
+# ZERAR O MACHINE ID DE UM LINUX
+truncate -s 0 /etc/machine-id
+rm /var/lib/dbus/machine-id
+ln -s /etc/machine-id /var/lib/dbus/machine-id
