@@ -1,0 +1,2 @@
+sudo vim /etc/gdm/custom.conf
+# Uncomment line: WaylandEnable=false
