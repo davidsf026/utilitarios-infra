@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: git-update-deployment
+spec:
+  params:
+    - name: GIT_REPOSITORY
+      type: string
+    - name: IMAGE_TAG
+      type: string
+    - name: PATH_TO_APP_GITOPS_DIR
+      type: string
+  workspaces:
+    - name: source
+  steps:
+    - name: git-update-deployment      
+      image: 'docker.io/bitnami/git:2.38.0'
+      resources: {}
+      env:
+        - name: GIT_USER
+          valueFrom:
+            secretKeyRef:
+              name: git-token
+              key: user
+        - name: GIT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: git-token
+              key: token
+      workingDir: $(workspaces.source.path)
+      script: |
+        if [ -d git-update-tag-workdir ]; then
+          echo git-update-tag-workdir directory already exists, deleting it.
+          rm -rf git-update-tag-workdir
+        fi
+
+        GIT_URL=$(echo -n $(echo $(params.GIT_REPOSITORY)|cut -d '/' -f1))//$GIT_USER:$(echo -n $(sed 's/@/%40/g' <<< $GIT_TOKEN))@$(echo -n $(echo $(params.GIT_REPOSITORY)|cut -d '/' -f 3-))
+
+        git clone --progress --verbose $GIT_URL git-update-tag-workdir
+
+        cd git-update-tag-workdir/$(params.PATH_TO_APP_GITOPS_DIR)
+
+        DEPLOY_FILE=$(grep "kind: Deploy" * |awk -F":" '{print $1}')
+        LAST_IMAGE=$(grep "image:" $DEPLOY_FILE |awk -F":" '{print $3}' )
+        LI=$(echo -n $LAST_IMAGE)
+
+        sed -i "s/$LI/$(params.IMAGE_TAG)/g" $DEPLOY_FILE
+
+        cd $(workspaces.source.path)
+        cd git-update-tag-workdir
+
+        git config user.email "argocd@memora.com.br"
+        git config user.name "$GIT_USER"
+
+        git status
+        git add .
+        git commit -m "[$(context.taskRun.name)] Image tag updated from $LAST_IMAGE to $(params.IMAGE_TAG) by Tekton"
+       
+        git push $GIT_URL
